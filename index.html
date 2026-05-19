@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warranty Assistant</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a1a1a; min-height: 100vh; }
+  header { background: #0f3d5e; color: white; padding: 1rem 1.25rem; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header p { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+  .tabs { display: flex; background: #0a2e47; overflow-x: auto; }
+  .tab { padding: 10px 16px; font-size: 13px; color: rgba(255,255,255,0.6); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .tab.active { color: white; border-bottom-color: #4db8ff; }
+  .container { padding: 1rem; max-width: 600px; margin: 0 auto; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .card { background: white; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card h2 { font-size: 14px; font-weight: 600; color: #0f3d5e; margin-bottom: 12px; }
+  label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; margin-top: 10px; }
+  select, input[type="month"] { width: 100%; padding: 8px 10px; border: 1px solid #dde; border-radius: 6px; font-size: 14px; background: #fafafa; }
+  .date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .verdict { padding: 10px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; margin-top: 12px; }
+  .verdict.deny { background: #fff0f0; color: #c0392b; border-left: 4px solid #c0392b; }
+  .verdict.approve { background: #f0fff4; color: #1e8449; border-left: 4px solid #1e8449; }
+  .verdict.warn { background: #fffbf0; color: #b7770d; border-left: 4px solid #f0a500; }
+  .verdict small { display: block; font-weight: 400; font-size: 12px; margin-top: 4px; opacity: 0.8; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-bottom: 10px; }
+  .badge.deny { background: #fff0f0; color: #c0392b; }
+  .badge.approve { background: #f0fff4; color: #1e8449; }
+  .badge.info { background: #e8f4fd; color: #1a6fa0; }
+  .badge.warn { background: #fffbf0; color: #b7770d; }
+  .template-box { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; font-size: 13px; line-height: 1.7; color: #333; white-space: pre-wrap; margin-top: 8px; max-height: 320px; overflow-y: auto; }
+  .copy-btn { margin-top: 10px; width: 100%; padding: 10px; background: #0f3d5e; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 500; }
+  .copy-btn:active { background: #0a2e47; }
+  .tree-item { padding: 10px 12px; border-left: 3px solid #4db8ff; margin-bottom: 8px; background: #f8fbff; border-radius: 0 6px 6px 0; font-size: 13px; line-height: 1.6; }
+  .tree-item strong { display: block; color: #0f3d5e; font-size: 13px; margin-bottom: 3px; }
+  .checklist label { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #333; margin-top: 8px; cursor: pointer; }
+  .checklist input[type="checkbox"] { margin-top: 2px; flex-shrink: 0; }
+  #causeResult { margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚙️ Warranty Assistant</h1>
+  <p>Warranty triage · date checks · response templates</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('check', this)">Date Check</div>
+  <div class="tab" onclick="switchTab('causes', this)">Cause Check</div>
+  <div class="tab" onclick="switchTab('templates', this)">Templates</div>
+  <div class="tab" onclick="switchTab('tree', this)">Decision Tree</div>
+</div>
+
+<div class="container">
+
+  <!-- DATE CHECK -->
+  <div class="section active" id="check">
+    <div class="card">
+      <h2>Warranty date calculator</h2>
+      <label>Issue type</label>
+      <select id="issueType" onchange="calcDate()">
+        <option value="12">Foam core (1-year warranty)</option>
+        <option value="12">Vinyl / exterior (1-year)</option>
+        <option value="12">Vapor barrier (1-year)</option>
+      </select>
+      <div class="date-row">
+        <div>
+          <label>Manufacture / order date</label>
+          <input type="month" id="mfgDate" onchange="calcDate()" />
+        </div>
+        <div>
+          <label>Today's date</label>
+          <input type="month" id="todayDate" onchange="calcDate()" />
+        </div>
+      </div>
+      <div id="dateResult"></div>
+    </div>
+  </div>
+
+  <!-- CAUSE CHECK -->
+  <div class="section" id="causes">
+    <div class="card">
+      <h2>Cause checklist</h2>
+      <p style="font-size:12px; color:#888;">Check all that apply to this claim:</p>
+      <div class="checklist">
+        <label><input type="checkbox" id="c1" onchange="checkCauses()"> Waterlogged / extremely heavy</label>
+        <label><input type="checkbox" id="c2" onchange="checkCauses()"> Foam cracked or snapped</label>
+        <label><input type="checkbox" id="c3" onchange="checkCauses()"> Evidence of being walked/sat on</label>
+        <label><input type="checkbox" id="c4" onchange="checkCauses()"> Snow load / standing water pooling</label>
+        <label><input type="checkbox" id="c5" onchange="checkCauses()"> Animal damage / wind damage</label>
+        <label><input type="checkbox" id="c6" onchange="checkCauses()"> Chemical staining / discoloration</label>
+        <label><input type="checkbox" id="c7" onchange="checkCauses()"> Vapor barrier brittle / disintegrating</label>
+        <label><input type="checkbox" id="c8" onchange="checkCauses()"> Cover lifter friction / strap misuse</label>
+        <label><input type="checkbox" id="c9" onchange="checkCauses()"> Clear manufacturing defect</label>
+        <label><input type="checkbox" id="c10" onchange="checkCauses()"> Photos missing / incomplete</label>
+      </div>
+      <div id="causeResult"></div>
+    </div>
+  </div>
+
+  <!-- TEMPLATES -->
+  <div class="section" id="templates">
+    <div class="card">
+      <h2>Response templates</h2>
+      <label>Select template</label>
+      <select id="tplSelect" onchange="showTemplate()">
+        <option value="deny_foam">Foam core denial</option>
+        <option value="deny_vapor">Vapor barrier denial</option>
+        <option value="deny_wear">Wear & tear denial</option>
+        <option value="deny_chem">Chemical / discoloration denial</option>
+        <option value="deny_wind">Wind / animal / act of God denial</option>
+        <option value="approve">Warranty approval</option>
+        <option value="info">Need more information</option>
+        <option value="edu">Customer education</option>
+      </select>
+      <div style="margin-top:10px;">
+        <span id="tplBadge"></span>
+      </div>
+      <div class="template-box" id="tplText"></div>
+      <button class="copy-btn" onclick="copyTemplate()">📋 Copy template</button>
+    </div>
+  </div>
+
+  <!-- DECISION TREE -->
+  <div class="section" id="tree">
+    <div class="card">
+      <h2>Quick decision guide</h2>
+      <div class="tree-item">
+        <strong>Foam core — waterlogged / heavy / cracked</strong>
+        Check date first. Within 1 year + manufacturing defect = approve. Past 1 year OR outside force present = deny.
+      </div>
+      <div class="tree-item">
+        <strong>Vapor barrier — brittle / disintegrating</strong>
+        Chemical / heat / off-gassing = deny. Early failure under 1 year = investigate further.
+      </div>
+      <div class="tree-item">
+        <strong>Vinyl tears / seam wear</strong>
+        Cover lifter friction or strap misuse = deny. Clear stitching/manufacturing defect = approve.
+      </div>
+      <div class="tree-item">
+        <strong>Discoloration / yellowing underside</strong>
+        Chemical, heat, off-gassing = deny. Not a manufacturing defect.
+      </div>
+      <div class="tree-item">
+        <strong>Wind / animal / snow / water pooling</strong>
+        Always deny. Act of God / outside force — voids warranty.
+      </div>
+      <div class="tree-item">
+        <strong>Photos missing or incomplete</strong>
+        Do not process. Send "Need more information" template and wait.
+      </div>
+      <div class="tree-item">
+        <strong>Clear manufacturing defect, within warranty period</strong>
+        Approve. Document cause clearly before submitting replacement order.
+      </div>
+    </div>
+    <div class="card">
+      <h2>Warranty policy reminder</h2>
+      <p style="font-size:13px; line-height:1.7; color:#444;">"Foam core insert or foam core rib breakage or tearing of the outer skin material due to the cover being walked on, stood/sat or leaned upon or any excessive weight caused by rain, water, snow, animals, or any other acts of God will void the warranty."</p>
+      <p style="font-size:12px; color:#888; margin-top:8px;">Foam cores carry a <strong>1-year limited warranty</strong> covering defects in materials or workmanship only.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const templates = {
+  deny_foam: {
+    badge: 'deny', label: 'Denial — foam core',
+    text: `Thank you for the photos provided.
+
+Upon review, the foam cores appear water saturated and have lost structural integrity. The condition is consistent with moisture intrusion, standing water, environmental exposure, and/or excessive external weight.
+
+Per the limited warranty terms:
+"Foam core insert or foam core rib breakage or tearing of the outer skin material due to the cover being walked on, stood/sat or leaned upon or any excessive weight caused by rain, water, snow, animals, or any other acts of God will void the warranty."
+
+Foam cores carry a 1-year limited warranty covering defects in materials or workmanship only.
+
+Based on the order/manufacture date on file, the foam core warranty period has expired.
+
+At this time, the condition does not qualify for warranty coverage. Replacement options are available upon request.`
+  },
+  deny_vapor: {
+    badge: 'deny', label: 'Denial — vapor barrier',
+    text: `Thank you for the detailed photos.
+
+The images show signs of vapor barrier deterioration — brittleness, cracking, and disintegration of the barrier material.
+
+Prolonged chemical exposure, spa off-gassing, heat, and environmental conditions weaken the vapor barrier over time, allowing moisture intrusion into the foam cores. Once the foam becomes saturated, the condition is not repairable.
+
+The limited warranty covers defects in materials and workmanship only and does not extend to age-related deterioration, chemical exposure, or environmental wear.
+
+At this time, the claim does not qualify for warranty coverage.`
+  },
+  deny_wear: {
+    badge: 'deny', label: 'Denial — wear & tear',
+    text: `Thank you for the photos provided.
+
+The condition shown is consistent with normal wear and tear from regular use and environmental exposure over time. The affected area also appears consistent with friction from a cover lifter and/or improper use of the straps to lift or move the cover.
+
+All covers include designated handles for opening and repositioning. Using straps for lifting places excess stress on the stitched areas and vinyl material.
+
+The limited warranty covers defects in materials and workmanship only and does not cover wear and tear or damage caused by improper use.`
+  },
+  deny_chem: {
+    badge: 'deny', label: 'Denial — discoloration',
+    text: `Thank you for the photos provided.
+
+The discoloration visible on the underside/seam area is consistent with chemical exposure, spa off-gassing, heat, and normal environmental aging over time.
+
+This type of discoloration does not indicate a manufacturing defect and is considered normal material deterioration associated with use conditions.
+
+The limited warranty covers defects in materials and workmanship only.`
+  },
+  deny_wind: {
+    badge: 'deny', label: 'Denial — act of God',
+    text: `Thank you for the photos provided.
+
+The damage shown appears consistent with an outside force or environmental event — including but not limited to wind, animal contact, snow load, or standing water.
+
+Per the limited warranty terms, damage caused by outside forces or acts of God is explicitly excluded from warranty coverage.
+
+At this time, the claim does not qualify for warranty replacement.`
+  },
+  approve: {
+    badge: 'approve', label: 'Warranty approval',
+    text: `Thank you for the photos provided.
+
+After review, the condition appears consistent with a defect in materials or workmanship covered under the limited warranty terms.
+
+The claim has been approved for warranty resolution. A replacement order has been submitted and production will proceed accordingly.
+
+You will receive a confirmation once the order is in process.`
+  },
+  info: {
+    badge: 'info', label: 'Need more information',
+    text: `Thank you for reaching out.
+
+To properly evaluate the claim, we need the following photos:
+
+• Full cover (top and bottom)
+• Damaged area (close-up)
+• Foam inserts removed from cover
+• Vapor barrier condition
+• Underside of foam cores
+
+Once received, we will review the condition and determine warranty eligibility under the limited warranty terms.`
+  },
+  edu: {
+    badge: 'warn', label: 'Customer education',
+    text: `We understand your concern and appreciate the opportunity to review the claim.
+
+The limited warranty specifically covers defects in materials and workmanship occurring within the applicable warranty period.
+
+Conditions caused by environmental exposure, standing water, chemical exposure, excessive weight, normal wear, or outside forces are not considered manufacturing defects under the warranty terms.
+
+Please don't hesitate to reach out if you have further questions.`
+  }
+};
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  el.classList.add('active');
+}
+
+function calcDate() {
+  const mfg = document.getElementById('mfgDate').value;
+  const today = document.getElementById('todayDate').value;
+  const limit = parseInt(document.getElementById('issueType').value);
+  const el = document.getElementById('dateResult');
+  if (!mfg || !today) { el.innerHTML = ''; return; }
+  const mfgD = new Date(mfg + '-01');
+  const todayD = new Date(today + '-01');
+  const months = (todayD.getFullYear() - mfgD.getFullYear()) * 12 + (todayD.getMonth() - mfgD.getMonth());
+  const expired = months > limit;
+  const yrs = Math.floor(months / 12);
+  const mo = months % 12;
+  const age = (yrs > 0 ? yrs + ' yr ' : '') + mo + ' mo old';
+  if (expired) {
+    el.innerHTML = `<div class="verdict deny">❌ Outside warranty period<small>${age} — ${limit}-month limit exceeded by ${months - limit} month(s)</small></div>`;
+  } else {
+    el.innerHTML = `<div class="verdict approve">✅ Within warranty period<small>${age} — ${limit - months} month(s) remaining</small></div>`;
+  }
+}
+
+function checkCauses() {
+  const el = document.getElementById('causeResult');
+  const noPhotos = document.getElementById('c10').checked;
+  const mfgDefect = document.getElementById('c9').checked;
+  const voidCauses = ['c1','c2','c3','c4','c5','c6','c7','c8'].some(id => document.getElementById(id).checked);
+
+  if (noPhotos) {
+    el.innerHTML = `<div class="verdict warn">📷 Photos needed<small>Send the "Need more information" template before processing.</small></div>`;
+  } else if (mfgDefect && !voidCauses) {
+    el.innerHTML = `<div class="verdict approve">✅ Likely approvable<small>Manufacturing defect with no voiding causes — verify date and submit.</small></div>`;
+  } else if (voidCauses) {
+    el.innerHTML = `<div class="verdict deny">❌ Likely deniable<small>One or more warranty-voiding conditions present. Select matching denial template.</small></div>`;
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+function showTemplate() {
+  const key = document.getElementById('tplSelect').value;
+  const t = templates[key];
+  document.getElementById('tplText').textContent = t.text;
+  const badgeMap = { deny: 'deny', approve: 'approve', info: 'info', warn: 'warn' };
+  document.getElementById('tplBadge').innerHTML = `<span class="badge ${badgeMap[t.badge]}">${t.label}</span>`;
+}
+
+function copyTemplate() {
+  const text = document.getElementById('tplText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => { btn.textContent = '📋 Copy template'; }, 2000);
+  });
+}
+
+// Set today's date automatically
+const today = new Date();
+document.getElementById('todayDate').value = today.toISOString().slice(0,7);
+showTemplate();
+</script>
+</body>
+</html>
