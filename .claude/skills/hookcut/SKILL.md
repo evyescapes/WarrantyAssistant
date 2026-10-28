@@ -17,8 +17,8 @@ description: Free local AI clipper. Turns a long video (file or link) into 30-60
    - Mac: `brew install ffmpeg`
    - Linux: `sudo apt install ffmpeg`
 3. Python packages:
-   `pip install -U openai-whisper yt-dlp opencv-python`
-   (Add `--break-system-packages` on Linux if pip refuses. On a headless server, `opencv-python-headless` works the same.)
+   `pip install -U openai-whisper yt-dlp "opencv-python<5"`
+   (Add `--break-system-packages` on Linux if pip refuses. On a headless server, `"opencv-python-headless<5"` works the same. Keep OpenCV on 4.x: 5.0 removed the face detector `face_center.py` uses.)
 4. Optional SFX: put free CC0 sound files in `~/.claude/skills/hookcut/sfx/`
    as `whoosh.wav` and `pop.wav`. Good sources are Pixabay Sound Effects and freesound.org (filter by CC0). The skill works without them.
 
